@@ -71,6 +71,9 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 
 	protected _joins;
 
+	/**
+	 * @deprecated Will be removed in version 4.0.0
+	 */
 	protected _with;
 
 	protected _conditions;
@@ -107,7 +110,7 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 			singleConditionArray, limit, offset, fromClause,
 			mergedConditions, mergedParams, mergedTypes,
 			singleCondition, singleParams, singleTypes,
-			with, distinct, bind, bindTypes;
+			distinct, bind, bindTypes;
 
 		if typeof params == "array" {
 
@@ -197,13 +200,6 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 			 */
 			if fetch joinsClause, params["joins"] {
 				let this->_joins = joinsClause;
-			}
-
-			/**
-			 * Check if the resultset must be eager loaded
-			 */
-			if fetch with, params["with"] {
-				let this->_with = with;
 			}
 
 			/**
@@ -389,32 +385,26 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 	/**
 	 * Add a model to take part of the query
 	 *
+	 * NOTE: The third parameter $with is deprecated and will be removed in future releases.
+	 *
 	 *<code>
 	 * // Load data from models Robots
 	 * $builder->addFrom("Robots");
 	 *
 	 * // Load data from model 'Robots' using 'r' as alias in PHQL
 	 * $builder->addFrom("Robots", "r");
-	 *
-	 * // Load data from model 'Robots' using 'r' as alias in PHQL
-	 * // and eager load model 'RobotsParts'
-	 * $builder->addFrom("Robots", "r", "RobotsParts");
-	 *
-	 * // Load data from model 'Robots' using 'r' as alias in PHQL
-	 * // and eager load models 'RobotsParts' and 'Parts'
-	 * $builder->addFrom(
-	 *     "Robots",
-	 *     "r",
-	 *     [
-	 *         "RobotsParts",
-	 *         "Parts",
-	 *     ]
-	 * );
 	 *</code>
 	 */
 	public function addFrom(var model, var alias = null, var with = null) -> <Builder>
 	{
 		var models, currentModel;
+
+		if typeof with != "null" {
+			trigger_error(
+				"The third parameter 'with' is deprecated and will be removed in future releases.",
+				E_DEPRECATED
+			);
+		}
 
 		let models = this->_models;
 		if typeof models != "array" {
@@ -738,6 +728,7 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 	 *<code>
 	 * $builder->orderBy("Robots.name");
 	 * $builder->orderBy(["1", "Robots.name"]);
+	 * $builder->orderBy(["Robots.name DESC"]);
 	 *</code>
 	 *
 	 * @param string|array orderBy
@@ -1311,8 +1302,26 @@ class Builder implements BuilderInterface, InjectionAwareInterface
 			if typeof order == "array" {
 				let orderItems = [];
 				for orderItem in order {
+					/**
+					 * For case 'ORDER BY 1'
+					 */
+					if typeof orderItem == "integer" {
+						let orderItems[] = orderItem;
+
+						continue;
+					}
+
+					if memstr(orderItem, " ") !== 0 {
+						var itemExplode;
+						let itemExplode = explode(" ", orderItem);
+						let orderItems[] = this->autoescape(itemExplode[0]) . " " . itemExplode[1];
+
+						continue;
+					}
+
 					let orderItems[] = this->autoescape(orderItem);
 				}
+
 				let phql .= " ORDER BY " . join(", ", orderItems);
 			} else {
 				let phql .= " ORDER BY " . order;

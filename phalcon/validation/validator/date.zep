@@ -29,7 +29,10 @@ use Phalcon\Validation\Message;
  * Checks if a value is a valid date
  *
  * <code>
+ * use Phalcon\Validation;
  * use Phalcon\Validation\Validator\Date as DateValidator;
+ *
+ * $validator = new Validation();
  *
  * $validator->add(
  *     "date",
@@ -92,7 +95,8 @@ class Date extends Validator
 				new Message(
 					strtr(message, replacePairs),
 					field,
-					"Date"
+					"Date",
+					code
 				)
 			);
 
