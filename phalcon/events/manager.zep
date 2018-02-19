@@ -20,7 +20,7 @@
 namespace Phalcon\Events;
 
 use Phalcon\Events\Event;
-use SplPriorityQueue as PriorityQueue;
+use SplPriorityQueue;
 
 /**
  * Phalcon\Events\Manager
@@ -44,9 +44,7 @@ class Manager implements ManagerInterface
 	/**
 	 * Attach a listener to the events manager
 	 *
-	 * @param string eventType
 	 * @param object|callable handler
-	 * @param int priority
 	 */
 	public function attach(string! eventType, var handler, int! priority = 100)
 	{
@@ -61,10 +59,10 @@ class Manager implements ManagerInterface
 			if this->_enablePriorities {
 
 				// Create a SplPriorityQueue to store the events with priorities
-				let priorityQueue = new PriorityQueue();
+				let priorityQueue = new SplPriorityQueue();
 
 				// Extract only the Data // Set extraction flags
-				priorityQueue->setExtractFlags(PriorityQueue::EXTR_DATA);
+				priorityQueue->setExtractFlags(SplPriorityQueue::EXTR_DATA);
 
 				// Append the events to the queue
 				let this->_events[eventType] = priorityQueue;
@@ -88,7 +86,6 @@ class Manager implements ManagerInterface
 	/**
 	 * Detach the listener from the events manager
 	 *
-	 * @param string eventType
 	 * @param object handler
 	 */
 	public function detach(string! eventType, var handler)
@@ -104,10 +101,10 @@ class Manager implements ManagerInterface
 			if typeof priorityQueue == "object" {
 
 				// SplPriorityQueue hasn't method for element deletion, so we need to rebuild queue
-				let newPriorityQueue = new PriorityQueue();
-				newPriorityQueue->setExtractFlags(\SplPriorityQueue::EXTR_DATA);
+				let newPriorityQueue = new SplPriorityQueue();
+				newPriorityQueue->setExtractFlags(SplPriorityQueue::EXTR_DATA);
 
-				priorityQueue->setExtractFlags(PriorityQueue::EXTR_BOTH);
+				priorityQueue->setExtractFlags(SplPriorityQueue::EXTR_BOTH);
 				priorityQueue->top();
 
 				while priorityQueue->valid() {
@@ -165,10 +162,8 @@ class Manager implements ManagerInterface
 
 	/**
 	 * Returns all the responses returned by every handler executed by the last 'fire' executed
-	 *
-	 * @return array
 	 */
-	public function getResponses()
+	public function getResponses() -> array
 	{
 		return this->_responses;
 	}
@@ -191,7 +186,6 @@ class Manager implements ManagerInterface
 	 * Internal handler to call a queue of events
 	 *
 	 * @param \SplPriorityQueue|array queue
-	 * @param \Phalcon\Events\Event event
 	 * @return mixed
 	 */
 	public final function fireQueue(var queue, <EventInterface> event)
@@ -201,7 +195,7 @@ class Manager implements ManagerInterface
 
 		if typeof queue != "array" {
 			if typeof queue == "object" {
-				if !(queue instanceof \SplPriorityQueue) {
+				if !(queue instanceof SplPriorityQueue) {
 					throw new Exception(
 						sprintf(
 							"Unexpected value type: expected object of type SplPriorityQueue, %s given",
@@ -367,10 +361,8 @@ class Manager implements ManagerInterface
 	 *	$eventsManager->fire("db", $connection);
 	 *</code>
 	 *
-	 * @param string eventType
 	 * @param object source
 	 * @param mixed  data
-	 * @param boolean cancelable
 	 * @return mixed
 	 */
 	public function fire(string! eventType, source, data = null, boolean cancelable = true)
@@ -441,11 +433,8 @@ class Manager implements ManagerInterface
 
 	/**
 	 * Returns all the attached listeners of a certain type
-	 *
-	 * @param string type
-	 * @return array
 	 */
-	public function getListeners(string! type)
+	public function getListeners(string! type) -> array
 	{
 		var events, fireEvents;
 		let events = this->_events;

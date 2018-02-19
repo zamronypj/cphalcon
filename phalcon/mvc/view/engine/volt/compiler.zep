@@ -121,7 +121,6 @@ class Compiler implements InjectionAwareInterface
 	/**
 	 * Sets a single compiler option
 	 *
-	 * @param string option
 	 * @param mixed value
 	 */
 	public function setOption(string! option, value)
@@ -132,7 +131,6 @@ class Compiler implements InjectionAwareInterface
 	/**
 	 * Returns a compiler's option
 	 *
-	 * @param string option
 	 * @return string
 	 */
 	public function getOption(string! option)
@@ -155,7 +153,6 @@ class Compiler implements InjectionAwareInterface
 	/**
 	 * Fires an event to registered extensions
 	 *
-	 * @param string name
 	 * @param array arguments
 	 * @return mixed
 	 */
@@ -1506,7 +1503,7 @@ class Compiler implements InjectionAwareInterface
 		 * A valid expression is required
 		 */
 		if !fetch expr, statement["expr"] {
-			throw new Exception("Corrupt statement");
+			throw new Exception("Corrupt statement", statement);
 		}
 
 		/**
@@ -1531,6 +1528,86 @@ class Compiler implements InjectionAwareInterface
 	}
 
 	/**
+	 * Compiles a 'switch' statement returning PHP code
+	 */
+	public function compileSwitch(array! statement, boolean extendsMode = false) -> string
+	{
+		var compilation, caseClauses, expr, lines;
+
+		/**
+		 * A valid expression is required
+		 */
+		if !fetch expr, statement["expr"] {
+			throw new Exception("Corrupt statement", statement);
+		}
+
+		/**
+		 * Process statements in the "true" block
+		 */
+		let compilation = "<?php switch (" . this->expression(expr) . "): ?>";
+
+		/**
+		 * Check for a "case"/"default" blocks
+		 */
+		if fetch caseClauses, statement["case_clauses"] {
+			let lines = this->_statementList(caseClauses, extendsMode);
+
+			/**
+			 * Any output (including whitespace) between a switch statement and the first case will result in
+			 * a syntax error. This is the responsibility of the user. However, we can clear empty lines
+			 * and whitespaces here to reduce the number of errors.
+			 *
+			 * http://php.net/control-structures.alternative-syntax
+			 */
+			 if strlen(lines) !== 0 {
+				/**
+				 * (*ANYCRLF) - specifies a newline convention: (*CR), (*LF) or (*CRLF)
+				 * \h+ - 1+ horizontal whitespace chars
+				 * $ - end of line (now, before CR or LF)
+				 * m - multiline mode on ($ matches at the end of a line).
+				 * u - unicode
+				 *
+				 * g - global search, - is implicit with preg_replace(), you don't need to include it.
+				 */
+				let lines = preg_replace("/(*ANYCRLF)^\h+|\h+$|(\h){2,}/mu", "", lines);
+			 }
+
+			let compilation .= lines;
+		}
+
+		let compilation .= "<?php endswitch ?>";
+
+		return compilation;
+	}
+
+	/**
+	 * Compiles a "case"/"default" clause returning PHP code
+	 */
+	public function compileCase(array! statement, bool caseClause = true) -> string
+	{
+		var expr;
+
+		if unlikely caseClause === false {
+			/**
+			 * "default" statement
+			 */
+			return "<?php default: ?>";
+		}
+
+		/**
+		 * A valid expression is required
+		 */
+		if !fetch expr, statement["expr"] {
+			throw new Exception("Corrupt statement", statement);
+		}
+
+		/**
+		 * "case" statement
+		 */
+		return "<?php case " . this->expression(expr) . ": ?>";
+	}
+
+	/**
 	 * Compiles a "elseif" statement returning PHP code
 	 */
 	public function compileElseIf(array! statement) -> string
@@ -1541,7 +1618,7 @@ class Compiler implements InjectionAwareInterface
 		 * A valid expression is required
 		 */
 		if !fetch expr, statement["expr"] {
-			throw new Exception("Corrupt statement");
+			throw new Exception("Corrupt statement", statement);
 		}
 
 		/**
@@ -1561,7 +1638,7 @@ class Compiler implements InjectionAwareInterface
 		 * A valid expression is required
 		 */
 		if !fetch expr, statement["expr"] {
-			throw new Exception("Corrupt statement");
+			throw new Exception("Corrupt statement", statement);
 		}
 
 		/**
@@ -1732,10 +1809,6 @@ class Compiler implements InjectionAwareInterface
 
 	/**
 	 * Compiles a '{{' '}}' statement returning PHP code
-	 *
-	 * @param array   statement
-	 * @param boolean extendsMode
-	 * @return string
 	 */
 	public function compileEcho(array! statement) -> string
 	{
@@ -1745,7 +1818,7 @@ class Compiler implements InjectionAwareInterface
 		 * A valid expression is required
 		 */
 		if !fetch expr, statement["expr"] {
-			throw new Exception("Corrupt statement");
+			throw new Exception("Corrupt statement", statement);
 		}
 
 		/**
@@ -1928,10 +2001,6 @@ class Compiler implements InjectionAwareInterface
 
 	/**
 	 * Compiles calls to macros
-	 *
-	 * @param array    statement
-	 * @param boolean  extendsMode
-	 * @return string
 	 */
 	public function compileCall(array! statement, boolean extendsMode)
 	{
@@ -1981,7 +2050,7 @@ class Compiler implements InjectionAwareInterface
 			 * Check if the statement is valid
 			 */
 			if !isset statement["type"] {
-				throw new Exception("Invalid statement in " . statement["file"] . " on line " . statement["line"]);
+				throw new Exception("Invalid statement in " . statement["file"] . " on line " . statement["line"], statement);
 			}
 
 			/**
@@ -2019,6 +2088,18 @@ class Compiler implements InjectionAwareInterface
 
 				case PHVOLT_T_ELSEIF:
 					let compilation .= this->compileElseIf(statement);
+					break;
+
+				case PHVOLT_T_SWITCH:
+					let compilation .= this->compileSwitch(statement, extendsMode);
+					break;
+
+				case PHVOLT_T_CASE:
+					let compilation .= this->compileCase(statement);
+					break;
+
+				case PHVOLT_T_DEFAULT:
+					let compilation .= this->compileCase(statement, false);
 					break;
 
 				case PHVOLT_T_FOR:
@@ -2316,9 +2397,6 @@ class Compiler implements InjectionAwareInterface
 	 * $compiler->compile("views/layouts/main.volt", "views/layouts/main.volt.php");
 	 *</code>
 	 *
-	 * @param string path
-	 * @param string compiledPath
-	 * @param boolean extendsMode
 	 * @return string|array
 	 */
 	public function compileFile(string! path, string! compiledPath, boolean extendsMode = false)
@@ -2569,10 +2647,10 @@ class Compiler implements InjectionAwareInterface
 				 * Stat is off but the compiled file doesn't exist
 				 */
 				if !file_exists(realCompiledPath) {
-				    /**
-                     * The file doesn't exist so we compile the php version for the first time
-                     */
-				    let compilation = this->compileFile(templatePath, realCompiledPath, extendsMode);
+					/**
+					 * The file doesn't exist so we compile the php version for the first time
+					 */
+					let compilation = this->compileFile(templatePath, realCompiledPath, extendsMode);
 				}
 
 			}
@@ -2608,7 +2686,6 @@ class Compiler implements InjectionAwareInterface
 	 * );
 	 *</code>
 	 *
-	 * @param string viewCode
 	 * @return array
 	 */
 	public function parse(string! viewCode)

@@ -24,6 +24,9 @@ use Phalcon\Db\Column;
 use Phalcon\Db\RawValue;
 use Phalcon\Db\Adapter\Pdo as PdoAdapter;
 use Phalcon\Db\Exception;
+use Phalcon\Db;
+use Phalcon\Db\Reference;
+use Phalcon\Db\ReferenceInterface;
 
 /**
  * Phalcon\Db\Adapter\Pdo\Postgresql
@@ -105,7 +108,7 @@ class Postgresql extends PdoAdapter
 		 * We're using FETCH_NUM to fetch the columns
 		 * 0:name, 1:type, 2:size, 3:numericsize, 4: numericscale, 5: null, 6: key, 7: extra, 8: position, 9 default
 		 */
-		for field in this->fetchAll(this->_dialect->describeColumns(table, schema), \Phalcon\Db::FETCH_NUM) {
+		for field in this->fetchAll(this->_dialect->describeColumns(table, schema), Db::FETCH_NUM) {
 
 			/**
 			 * By default the bind types is two
@@ -141,6 +144,22 @@ class Postgresql extends PdoAdapter
 					definition["isNumeric"] = true,
 					definition["size"] = numericSize,
 					definition["bindType"] = Column::BIND_PARAM_INT;
+			} elseif memstr(columnType, "double precision") {
+				/**
+				 * Double Precision
+				 */
+				let definition["type"] = Column::TYPE_DOUBLE,
+					definition["isNumeric"] = true,
+					definition["size"] = numericSize,
+					definition["bindType"] = Column::BIND_PARAM_DECIMAL;
+            } elseif memstr(columnType, "real") {
+				/**
+				 * Real
+				 */
+				let definition["type"] = Column::TYPE_FLOAT,
+					definition["isNumeric"] = true,
+					definition["size"] = numericSize,
+					definition["bindType"] = Column::BIND_PARAM_DECIMAL;
 			} elseif memstr(columnType, "varying") {
 				/**
 				 * Varchar
@@ -173,12 +192,6 @@ class Postgresql extends PdoAdapter
 				 */
 				let definition["type"] = Column::TYPE_CHAR,
 					definition["size"] = charSize;
-			} elseif memstr(columnType, "timestamp") {
-				/**
-				 * Date
-				 */
-				let definition["type"] = Column::TYPE_DATETIME,
-					definition["size"] = 0;
 			} elseif memstr(columnType, "text") {
 				/**
 				 * Text are varchars
@@ -221,13 +234,6 @@ class Postgresql extends PdoAdapter
 				 * By default is string
 				 */
 				let definition["type"] = Column::TYPE_VARCHAR;
-			}
-
-			/**
-			 * Check if the column is unsigned, only MySQL support this
-			 */
-			if memstr(columnType, "unsigned") {
-				let definition["unsigned"] = true;
 			}
 
 			/**
@@ -310,7 +316,7 @@ class Postgresql extends PdoAdapter
 					this->{"query"}(query . ";");
 				}
 				return this->{"commit"}();
-			} catch \Exception, exception {
+			} catch \Throwable, exception {
 
 				this->{"rollback"}();
 				 throw exception;
@@ -343,7 +349,7 @@ class Postgresql extends PdoAdapter
 				}
 				return this->{"commit"}();
 
-			} catch \Exception, exception {
+			} catch \Throwable, exception {
 
 				this->{"rollback"}();
 				 throw exception;
@@ -394,5 +400,71 @@ class Postgresql extends PdoAdapter
 	public function supportSequences() -> boolean
 	{
 		return true;
+	}
+
+	/**
+	 * Lists table references
+	 *
+	 *<code>
+	 * print_r(
+	 *     $connection->describeReferences("robots_parts")
+	 * );
+	 *</code>
+	 */
+	public function describeReferences(string! table, string! schema = null) -> <ReferenceInterface[]>
+	{
+		var references, reference,
+			arrayReference, constraintName, referenceObjects, name,
+			referencedSchema, referencedTable, columns, referencedColumns,
+			referenceUpdate, referenceDelete;
+
+		let references = [];
+
+		for reference in this->fetchAll(this->_dialect->describeReferences(table, schema), Db::FETCH_NUM) {
+
+			let constraintName = reference[2];
+			if !isset references[constraintName] {
+				let referencedSchema  = reference[3];
+				let referencedTable   = reference[4];
+				let referenceUpdate   = reference[6];
+				let referenceDelete   = reference[7];
+				let columns           = [];
+				let referencedColumns = [];
+
+			} else {
+				let referencedSchema  = references[constraintName]["referencedSchema"];
+				let referencedTable   = references[constraintName]["referencedTable"];
+				let columns           = references[constraintName]["columns"];
+				let referencedColumns = references[constraintName]["referencedColumns"];
+				let referenceUpdate   = references[constraintName]["onUpdate"];
+				let referenceDelete   = references[constraintName]["onDelete"];
+			}
+
+			let columns[] = reference[1],
+				referencedColumns[] = reference[5];
+
+			let references[constraintName] = [
+				"referencedSchema"  : referencedSchema,
+				"referencedTable"   : referencedTable,
+				"columns"           : columns,
+				"referencedColumns" : referencedColumns,
+				"onUpdate"          : referenceUpdate,
+				"onDelete"          : referenceDelete
+			];
+		}
+
+		let referenceObjects = [];
+		for name, arrayReference in references {
+			let referenceObjects[name] = new Reference(name, [
+				"referencedSchema"  : arrayReference["referencedSchema"],
+				"referencedTable"   : arrayReference["referencedTable"],
+				"columns"           : arrayReference["columns"],
+				"referencedColumns" : arrayReference["referencedColumns"],
+				"onUpdate"          : arrayReference["onUpdate"],
+				"onDelete"          : arrayReference["onDelete"]
+			]);
+		}
+
+		return referenceObjects;
 	}
 }

@@ -29,7 +29,10 @@ use Phalcon\Validation\Message;
  * Checks if a value has a valid credit card number
  *
  * <code>
+ * use Phalcon\Validation;
  * use Phalcon\Validation\Validator\CreditCard as CreditCardValidator;
+ *
+ * $validator = new Validation();
  *
  * $validator->add(
  *     "creditCard",
@@ -93,10 +96,8 @@ class CreditCard extends Validator
 
 	/**
 	 * is a simple checksum formula used to validate a variety of identification numbers
-	 * @param  string number
-	 * @return boolean
 	 */
-	private function verifyByLuhnAlgorithm(number) -> boolean
+	private function verifyByLuhnAlgorithm(string number) -> boolean
 	{
 		array digits;
 		let digits = (array) str_split(number);

@@ -119,8 +119,10 @@ interface ViewInterface extends ViewBaseInterface
 
 	/**
 	 * Gets extra parameters of the action rendered
+	 *
+	 * @deprecated Will be removed in 4.0.0
 	 */
-	public function getParams() -> array;
+	deprecated public function getParams() -> array;
 
 	/**
 	 * Starts rendering process enabling the output buffering
@@ -134,12 +136,8 @@ interface ViewInterface extends ViewBaseInterface
 
 	/**
 	 * Executes render process from dispatching data
-	 *
-	 * @param string controllerName
-	 * @param string actionName
-	 * @param array params
 	 */
-	public function render(string! controllerName, string! actionName, params = null);
+	public function render(string! controllerName, string! actionName, array params = []) -> <ViewInterface> | boolean;
 
 	/**
 	 * Choose a view different to render than last-controller/last-action

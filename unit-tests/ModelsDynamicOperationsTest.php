@@ -18,7 +18,9 @@
   +------------------------------------------------------------------------+
 */
 
-class ModelsDynamicOperationsTest extends PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class ModelsDynamicOperationsTest extends TestCase
 {
 
 	public function __construct()
@@ -100,7 +102,7 @@ class ModelsDynamicOperationsTest extends PHPUnit_Framework_TestCase
 		$persona = Dynamic\Personas::findFirst();
 		$this->assertTrue($persona->save());
 
-		$this->assertEquals(count($tracer), 3);
+		$this->assertCount(3, $tracer);
 
 		$persona->nombres = 'Other Name '.mt_rand(0, 150000);
         $this->assertEquals($persona->getChangedFields(), array('nombres'));
@@ -121,7 +123,7 @@ class ModelsDynamicOperationsTest extends PHPUnit_Framework_TestCase
 		$personer = Dynamic\Personers::findFirst();
 		$this->assertTrue($personer->save());
 
-		$this->assertEquals(count($tracer), 3);
+		$this->assertCount(3, $tracer);
 
 		$personer->navnes = 'Other Name '.mt_rand(0, 150000);
         $this->assertEquals($personer->getChangedFields(), array('navnes'));

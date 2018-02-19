@@ -485,46 +485,4 @@ class Security implements InjectionAwareInterface
 	{
 		return this->_defaultHash;
 	}
-
-	/**
-	 * Testing for LibreSSL
-	 */
-	public function hasLibreSsl() -> boolean
-	{
-		if !defined("OPENSSL_VERSION_TEXT") {
-			return false;
-		}
-
-		return strpos(OPENSSL_VERSION_TEXT, "LibreSSL") === 0;
-	}
-
-	/**
-	 * Getting OpenSSL or LibreSSL version
-	 *
-	 * Parse OPENSSL_VERSION_TEXT because OPENSSL_VERSION_NUMBER is no use for LibreSSL.
-	 * @link https://bugs.php.net/bug.php?id=71143
-	 *
-	 * <code>
-	 * if ($security->getSslVersionNumber() >= 20105) {
-	 *     // ...
-	 * }
-	 * </code>
-	 */
-	public function getSslVersionNumber() -> int
-	{
-		var matches;
-
-		preg_match("#^(?:Libre|Open)SSL ([\d]+)\.([\d]+)(\.([\d]+))?$#", OPENSSL_VERSION_TEXT, matches);
-
-		if !isset matches[2] {
-			return 0;
-		}
-
-		var patch = 0;
-		if isset matches[3] {
-			let patch = intval(matches[3]);
-		}
-
-		return (10000 * intval(matches[2])) + (100 * intval(matches[2])) + patch;
-	}
 }

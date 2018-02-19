@@ -27,6 +27,8 @@ use Phalcon\Logger\Formatter;
  * Phalcon\Logger\Formatter\Firephp
  *
  * Formats messages so that they can be sent to FirePHP
+ *
+ * @deprecated Will be removed in 4.0.0
  */
 class Firephp extends Formatter
 {
@@ -100,12 +102,7 @@ class Firephp extends Formatter
 	/**
 	 * Applies a format to a message before sending it to the log
 	 *
-	 * @param string $message
-	 * @param int $type
-	 * @param int $timestamp
 	 * @param array $context
-	 *
-	 * @return string
 	 */
 	public function format(string message, int type, int timestamp, var context = null) -> string
 	{

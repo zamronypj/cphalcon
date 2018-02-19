@@ -253,6 +253,26 @@ class Request implements RequestInterface, InjectionAwareInterface
 		return isset _SERVER[name];
 	}
 
+    /**
+     * Checks whether headers has certain index
+     */
+    public final function hasHeader(string! header) -> boolean
+    {
+        var name;
+
+        let name = strtoupper(strtr(header, "-", "_"));
+
+        if isset _SERVER[name] {
+            return true;
+        }
+
+        if isset _SERVER["HTTP_" . name] {
+            return true;
+        }
+
+        return false;
+    }
+
 	/**
 	 * Gets HTTP header from request data
 	 */
@@ -320,27 +340,11 @@ class Request implements RequestInterface, InjectionAwareInterface
 	}
 
 	/**
-	 * Alias of isSoap(). It will be deprecated in future versions
-	 */
-	deprecated public function isSoapRequested() -> boolean
-	{
-		return this->isSoap();
-	}
-
-	/**
 	 * Checks whether request has been made using any secure layer
 	 */
 	public function isSecure() -> boolean
 	{
 		return this->getScheme() === "https";
-	}
-
-	/**
-	 * Alias of isSecure(). It will be deprecated in future versions
-	 */
-	deprecated public function isSecureRequest() -> boolean
-	{
-		return this->isSecure();
 	}
 
 	/**

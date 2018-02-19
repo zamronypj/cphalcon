@@ -93,7 +93,7 @@ class Application extends BaseApplication
 	/**
 	 * Handles a MVC request
 	 */
-	public function handle(string uri = null) -> <ResponseInterface> | boolean
+	public function handle(string! uri) -> <ResponseInterface> | boolean
 	{
 		var dependencyInjector, eventsManager, router, dispatcher, response, view,
 			module, moduleObject, moduleName, className, path,
@@ -347,8 +347,7 @@ class Application extends BaseApplication
 							 */
 							view->render(
 								dispatcher->getControllerName(),
-								dispatcher->getActionName(),
-								dispatcher->getParams()
+								dispatcher->getActionName()
 							);
 						}
 					}
@@ -387,12 +386,6 @@ class Application extends BaseApplication
 		if typeof eventsManager == "object" {
 			eventsManager->fire("application:beforeSendResponse", this, response);
 		}
-
-		/**
-		 * Headers and Cookies are automatically sent
-		 */
-		response->sendHeaders();
-		response->sendCookies();
 
 		/**
 		 * Return the response
